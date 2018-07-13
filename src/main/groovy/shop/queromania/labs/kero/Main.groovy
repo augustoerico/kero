@@ -4,6 +4,8 @@ import groovy.json.JsonOutput
 import org.jsoup.Jsoup
 import org.jsoup.select.Elements
 
+import java.util.regex.Matcher
+
 class Main {
 
     static final TOKEN = System.getenv('TOKEN')
@@ -48,18 +50,35 @@ class Main {
     static List<String> getAvailableSizes(String description) {
         if (!description) return []
 
-        def matcher = (description =~ /Tam\.: (\d+) a (\d+)/)
-        if (matcher.size()) {
+        description = description.toUpperCase()
+
+        def sizeList = { Matcher matcher ->
             println(matcher[0])
             def lower = Integer.parseInt(matcher.group(1))
             def higher = Integer.parseInt(matcher.group(2))
             return (lower..higher).findAll { it % 2 == 0 }.collect { "$it".toString() }
         }
 
-        matcher = (description =~ /Tam\.:(( \w+)+)/)
+        def matcher = (description =~ /TAM\.: (\d+) A (\d+)/)
+        if (matcher.size()) {
+            return sizeList(matcher)
+        }
+
+        matcher = (description =~ /TAM\.:(( \w+)+)/)
         if (matcher.size()) {
             println(matcher[0])
             return matcher.group(1).trim().split(/\s+/)
+        }
+
+        matcher = (description =~ /\(VESTE \w+ E \w+\)/)
+        if (matcher.size()) {
+            println(matcher[0])
+            return [matcher.group(1), matcher.group(2)]
+        }
+
+        matcher = (description =~ /\(VESTE \d+ AO? \d+\)/)
+        if (matcher.size()) {
+            return sizeList(matcher)
         }
 
         []
