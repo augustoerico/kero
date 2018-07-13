@@ -2,6 +2,7 @@ package shop.queromania.labs.kero
 
 import groovy.json.JsonOutput
 import org.jsoup.Jsoup
+import org.jsoup.select.Elements
 
 class Main {
 
@@ -36,7 +37,8 @@ class Main {
                     id         : descriptionNode.select('span').first().text().find(~'\\d{6}'),
                     sizes      : getAvailableSizes(description),
                     images     : contentNode.select('div.images').first()
-                            .select('a').collect { it.attr('href') }
+                            .select('a').collect { it.attr('href') },
+                    colors     : getAvailableColors(contentNode.select('div.cores'))
             ]
         }
 
@@ -60,7 +62,12 @@ class Main {
             return matcher.group(1).trim().split(/\s+/)
         }
 
-        return []
+        []
+    }
+
+    static List<String> getAvailableColors(Elements colorsNode) {
+        if (!colorsNode.size()) return []
+        colorsNode.first().select('a.field-color').collect { it.text() }
     }
 
 }
