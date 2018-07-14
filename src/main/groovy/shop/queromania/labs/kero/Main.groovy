@@ -1,6 +1,7 @@
 package shop.queromania.labs.kero
 
-import groovy.json.JsonOutput
+import org.apache.commons.lang3.StringEscapeUtils
+import org.apache.commons.lang3.StringUtils
 import org.jsoup.Jsoup
 import org.jsoup.select.Elements
 
@@ -28,13 +29,18 @@ class Main {
 
             content.findAll(~'http://demillus.vestemuitomelhor.com.br/pecas/.+?/')
         }.flatten().unique().collect { url ->
-            def contentNode = Jsoup.connect(url).get().select('div.entry-content').first()
+            def contentNode = Jsoup.connect(url as String).get().select('div.entry-content').first()
+
             def descriptionNode = contentNode.select('div.descriptions').first()
             def description = descriptionNode.select('p').first().text()
+
+            def title = contentNode.select('h1.entry-title').first().text()
+            def excerpt = contentNode.select('p.excerpt').first().text()
+
             [
                     url        : url,
-                    title      : contentNode.select('h1.entry-title').first().text(),
-                    excerpt    : contentNode.select('p.excerpt').first().text(),
+                    title      : title,
+                    excerpt    : excerpt,
                     description: description,
                     id         : descriptionNode.select('span').first().text().find(~'\\d{6}'),
                     sizes      : getAvailableSizes(description),
@@ -44,7 +50,7 @@ class Main {
             ]
         }
 
-        products.each { println(JsonOutput.prettyPrint(JsonOutput.toJson(it))) }
+        exportToCsv(products)
     }
 
     static List<String> getAvailableSizes(String description) {
@@ -70,16 +76,16 @@ class Main {
             return matcher.group(1).trim().split(/\s+/)
         }
 
-        matcher = (description =~ /\(VESTE \w+ E \w+\)/)
-        if (matcher.size()) {
-            println(matcher[0])
-            return [matcher.group(1), matcher.group(2)]
-        }
-
-        matcher = (description =~ /\(VESTE \d+ AO? \d+\)/)
-        if (matcher.size()) {
-            return sizeList(matcher)
-        }
+//        matcher = (description =~ /(\w+)\s+\(VESTE \w+ E \w+\)/)
+//        if (matcher.size()) {
+//            println(matcher[0])
+//            return [matcher.group(1), matcher.group(2)]
+//        }
+//
+//        matcher = (description =~ /(\w+)\s+\(VESTE \d+ AO? \d+\)/)
+//        if (matcher.size()) {
+//            return sizeList(matcher)
+//        }
 
         []
     }
@@ -87,6 +93,67 @@ class Main {
     static List<String> getAvailableColors(Elements colorsNode) {
         if (!colorsNode.size()) return []
         colorsNode.first().select('a.field-color').collect { it.text() }
+    }
+
+    static void exportToCsv(List products) {
+        def file = products.collect {
+            productToCsv(it as Map)
+        }.flatten().join('\n')
+        println(file)
+        def header = 'Identificador URL,Nome,Categorias,' +
+                'Nome da variação 1,Valor da variação 1,Nome da variação 2,Valor da variação 2,' +
+                'Preço,Preço promocional,' +
+                'Peso,Altura,Largura,Comprimento,' +
+                'Estoque,SKU,Código de barras,' +
+                'Exibir na loja,Frete gratis,' +
+                'Descrição,Tags,Título para SEO,Descrição para SEO\n'
+        new File('test.csv').write(header + file)
+    }
+
+    static List productToCsv(Map product) {
+        def id = StringUtils.stripAccents((product.title as String).toLowerCase()
+                .replaceAll(/\s+/, '-'))
+
+        GroovyCollections.combinations(product.sizes, product.colors).collect {
+            def item = it as List
+            [
+                    id,
+                    product.title,
+                    '', // categorias TODO
+                    'Tamanho',
+                    item[0],
+                    'Cor',
+                    (item[1] as String).toLowerCase(),
+                    '', // preço TODO
+                    '', // preço promocional TODO
+                    0, // peso TODO
+                    0, // altura TODO
+                    0, // largura TODO
+                    0, // comprimento
+                    '', // estoque
+                    product.id,
+                    '', // codigo de barra
+                    'NÃO', // aparecer na loja
+                    'NÃO',
+                    formatDescription(product.description as String),
+                    '', // tags
+                    '', // titulo SEO
+                    '', // descriçao SEO
+            ].join(',')
+        }
+    }
+
+    static String formatDescription(String description) {
+        description = StringEscapeUtils.escapeHtml4(description)
+        def attentionTitle = StringEscapeUtils.escapeHtml4('ATENÇÃO')
+        def attentionNote = StringEscapeUtils.escapeHtml4('A confecção da DeMillus é pequena. Consulte a tabela ' +
+                'abaixo para saber suas medidas e evitar trocas.')
+        "<p>$description</p>" +
+                "<p>&nbsp;</p>" +
+                "<p><span style=\"color:#FF0000;\"><strong>$attentionTitle</strong></span></p>" +
+                "<p><strong>$attentionNote</strong><p>" +
+                "<p>&nbsp;</p>"
+        // TODO add more key-specific info: tables, images and such
     }
 
 }
