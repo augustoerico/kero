@@ -19,15 +19,23 @@ class Main {
     ]
 
     static main(args) {
-        def ids = ['298095', '000115', '052114', '093013', '000118', '093114', '063114', '267093', '211093', '267134',
-                   '211134', '298134', '020128', '085128', '267094', '212094']
 
-        def products = ids.collect { id ->
-            def content = "http://demillus.vestemuitomelhor.com.br/?s=$id".toURL()
+        def pricesById = new File('input.csv').collect { line ->
+            def values = line.split(/,/)
+
+            def id = values[0]
+            def price = values[1]
+            def discountPrice = values.size() > 2 ? values[2] : ''
+
+            [id, [price: price, discountPrice: discountPrice]]
+        }.collectEntries()
+
+        def products = pricesById.keySet().collect {
+            def content = "http://demillus.vestemuitomelhor.com.br/?s=$it".toURL()
                     .getText(requestProperties: REQUEST_PROPERTIES)
                     .replaceAll(/[\r\n\t]/, '')
 
-            content.findAll(~'http://demillus.vestemuitomelhor.com.br/pecas/.+?/')
+            content.findAll(~'http://demillus.vestemuitomelhor.com.br/pecas/.+?/').unique()
         }.flatten().unique().collect { url ->
             def contentNode = Jsoup.connect(url as String).get().select('div.entry-content').first()
 
@@ -37,20 +45,56 @@ class Main {
             def title = contentNode.select('h1.entry-title').first().text()
             def excerpt = contentNode.select('p.excerpt').first().text()
 
+            def id = descriptionNode.select('span').first().text().find(~'\\d{6}')
             [
-                    url        : url,
-                    title      : title,
-                    excerpt    : excerpt,
-                    description: description,
-                    id         : descriptionNode.select('span').first().text().find(~'\\d{6}'),
-                    sizes      : getAvailableSizes(description),
-                    images     : contentNode.select('div.images').first()
+                    id           : id,
+                    price        : (pricesById.get(id) as Map)?.price,
+                    discountPrice: (pricesById.get(id) as Map)?.discountPrice,
+                    url          : url,
+                    title        : title,
+                    excerpt      : excerpt,
+                    description  : description,
+                    sizes        : getAvailableSizes(description),
+                    images       : contentNode.select('div.images').first()
                             .select('a').collect { it.attr('href') },
-                    colors     : getAvailableColors(contentNode.select('div.cores'))
+                    colors       : getAvailableColors(contentNode.select('div.cores'))
             ]
         }
 
         exportToCsv(products)
+    }
+
+    static List productToCsv(Map product) {
+        def id = StringUtils.stripAccents((product.title as String).toLowerCase()
+                .replaceAll(/\s+/, '-'))
+
+        GroovyCollections.combinations(product.sizes, product.colors).collect {
+            def item = it as List
+            [
+                    id + '_2',
+                    product.title,
+                    '', // categorias TODO
+                    'Tamanho',
+                    item[0],
+                    'Cor',
+                    (item[1] as String).toLowerCase(),
+                    product.price ?: '',
+                    product.discountPrice ?: '',
+                    0, // peso TODO
+                    0, // altura TODO
+                    0, // largura TODO
+                    0, // comprimento
+                    '', // estoque
+                    product.id,
+                    '', // codigo de barra
+                    'NÃO', // aparecer na loja
+                    'NÃO',
+                    formatDescription(product.description as String),
+                    '', // tags
+                    '', // titulo SEO
+                    '', // descriçao SEO
+            ].join(',')
+        }
     }
 
     static List<String> getAvailableSizes(String description) {
@@ -108,39 +152,6 @@ class Main {
                 'Exibir na loja,Frete gratis,' +
                 'Descrição,Tags,Título para SEO,Descrição para SEO\n'
         new File('test.csv').write(header + file)
-    }
-
-    static List productToCsv(Map product) {
-        def id = StringUtils.stripAccents((product.title as String).toLowerCase()
-                .replaceAll(/\s+/, '-'))
-
-        GroovyCollections.combinations(product.sizes, product.colors).collect {
-            def item = it as List
-            [
-                    id,
-                    product.title,
-                    '', // categorias TODO
-                    'Tamanho',
-                    item[0],
-                    'Cor',
-                    (item[1] as String).toLowerCase(),
-                    '', // preço TODO
-                    '', // preço promocional TODO
-                    0, // peso TODO
-                    0, // altura TODO
-                    0, // largura TODO
-                    0, // comprimento
-                    '', // estoque
-                    product.id,
-                    '', // codigo de barra
-                    'NÃO', // aparecer na loja
-                    'NÃO',
-                    formatDescription(product.description as String),
-                    '', // tags
-                    '', // titulo SEO
-                    '', // descriçao SEO
-            ].join(',')
-        }
     }
 
     static String formatDescription(String description) {
