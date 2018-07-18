@@ -68,9 +68,11 @@ class Main {
                             originalCategory: StringUtils.stripAccents(originalCategory).toLowerCase()
                     ]
             ]
-        }/*.collect {
-            (it as Map) + [categories: getCategories(it)]
-        }*/
+        }.collect {
+            (it as Map) + [tags: getTags(it)]
+        }.collect {
+            (it as Map) + [categories: Category.getCategories(it)]
+        }
 
         exportToCsv(products)
     }
@@ -84,7 +86,7 @@ class Main {
             [
                     id + '_2',
                     product.title,
-                    product.originalCategory,
+                    "\"${product.categories.join(',')}\"",
                     'Tamanho',
                     item[0],
                     'Cor',
@@ -104,7 +106,7 @@ class Main {
                     'NÃO',
                     formatDescription(product.description as String),
                     // SEO
-                    "\"${getTags(product)}\"",
+                    "\"${(product.tags as List).join(',')}\"",
                     product.title,
                     ''
             ].join(',')
@@ -153,25 +155,11 @@ class Main {
         colorsNode.first().select('a.field-color').collect { it.text() }
     }
 
-    static String getTags(Map product) {
+    static List getTags(Map product) {
         [
                 (product.normalized.title as String).split(/\s+/),
                 (product.normalized.originalCategory as String).split(/\s+/)
-        ].flatten().findAll { it && (it =~ /\w+/).size() }.join(',')
-    }
-
-    static List<String> getCategories(Map product) {
-        def categories = []
-
-        if (product.price && product.discountPrice && product.price != product.discountPrice) {
-            categories.add('Ofertas')
-        }
-
-        def matcher = (product.normalizedTitle =~ /sutia/)
-        if (matcher.size()) {
-            categories.add('Sutiã')
-        }
-        categories
+        ].flatten().findAll { it && (it =~ /\w+/).size() }
     }
 
     static void exportToCsv(List products) {
