@@ -33,33 +33,44 @@ class Main {
         def products = pricesById.keySet().collect {
             def content = "http://demillus.vestemuitomelhor.com.br/?s=$it".toURL()
                     .getText(requestProperties: REQUEST_PROPERTIES)
-                    .replaceAll(/[\r\n\t]/, '')
+                    .replaceAll(/[\r\n\t ]+/, ' ')
 
             content.findAll(~'http://demillus.vestemuitomelhor.com.br/pecas/.+?/').unique()
         }.flatten().unique().collect { url ->
-            def contentNode = Jsoup.connect(url as String).get().select('div.entry-content').first()
-
+            def pageNode = Jsoup.connect(url as String).get()
+            def contentNode = pageNode.select('div.entry-content').first()
             def descriptionNode = contentNode.select('div.descriptions').first()
-            def description = descriptionNode.select('p').first().text()
 
-            def title = contentNode.select('h1.entry-title').first().text()
-            def excerpt = contentNode.select('p.excerpt').first().text()
+            def description = descriptionNode.select('p').first().text().trim()
+            def title = contentNode.select('h1.entry-title').first().text().trim()
+            def excerpt = contentNode.select('p.excerpt').first().text().trim()
+            def originalCategory = pageNode.select('ul#menu-principal').first()
+                    .select('li.current-menu-parent > a').text()
 
             def id = descriptionNode.select('span').first().text().find(~'\\d{6}')
             [
-                    id           : id,
-                    price        : (pricesById.get(id) as Map)?.price,
-                    discountPrice: (pricesById.get(id) as Map)?.discountPrice,
-                    url          : url,
-                    title        : title,
-                    excerpt      : excerpt,
-                    description  : description,
-                    sizes        : getAvailableSizes(description),
-                    images       : contentNode.select('div.images').first()
+                    id              : id,
+                    price           : (pricesById.get(id) as Map)?.price,
+                    discountPrice   : (pricesById.get(id) as Map)?.discountPrice,
+                    url             : url,
+                    title           : title,
+                    excerpt         : excerpt,
+                    description     : description,
+                    sizes           : getAvailableSizes(description),
+                    images          : contentNode.select('div.images').first()
                             .select('a').collect { it.attr('href') },
-                    colors       : getAvailableColors(contentNode.select('div.cores'))
+                    colors          : getAvailableColors(contentNode.select('div.cores')),
+                    originalCategory: originalCategory,
+                    normalized      : [
+                            title           : StringUtils.stripAccents(title).toLowerCase(),
+                            description     : StringUtils.stripAccents(description).toLowerCase(),
+                            excerpt         : StringUtils.stripAccents(excerpt).toLowerCase(),
+                            originalCategory: StringUtils.stripAccents(originalCategory).toLowerCase()
+                    ]
             ]
-        }
+        }/*.collect {
+            (it as Map) + [categories: getCategories(it)]
+        }*/
 
         exportToCsv(products)
     }
@@ -73,26 +84,29 @@ class Main {
             [
                     id + '_2',
                     product.title,
-                    '', // categorias TODO
+                    product.originalCategory,
                     'Tamanho',
                     item[0],
                     'Cor',
                     (item[1] as String).toLowerCase(),
                     product.price ?: '',
                     product.discountPrice ?: '',
+                    // Weight, Dimensions, Stock
                     0, // peso TODO
                     0, // altura TODO
                     0, // largura TODO
                     0, // comprimento
-                    '', // estoque
+                    '',
+                    // SKU
                     product.id,
-                    '', // codigo de barra
+                    '',
                     'NÃO', // aparecer na loja
                     'NÃO',
                     formatDescription(product.description as String),
-                    '', // tags
-                    '', // titulo SEO
-                    '', // descriçao SEO
+                    // SEO
+                    "\"${getTags(product)}\"",
+                    product.title,
+                    ''
             ].join(',')
         }
     }
@@ -139,11 +153,32 @@ class Main {
         colorsNode.first().select('a.field-color').collect { it.text() }
     }
 
+    static String getTags(Map product) {
+        [
+                (product.normalized.title as String).split(/\s+/),
+                (product.normalized.originalCategory as String).split(/\s+/)
+        ].flatten().findAll { it && (it =~ /\w+/).size() }.join(',')
+    }
+
+    static List<String> getCategories(Map product) {
+        def categories = []
+
+        if (product.price && product.discountPrice && product.price != product.discountPrice) {
+            categories.add('Ofertas')
+        }
+
+        def matcher = (product.normalizedTitle =~ /sutia/)
+        if (matcher.size()) {
+            categories.add('Sutiã')
+        }
+        categories
+    }
+
     static void exportToCsv(List products) {
         def file = products.collect {
             productToCsv(it as Map)
         }.flatten().join('\n')
-        println(file)
+        println(file) // TODO remove-me
         def header = 'Identificador URL,Nome,Categorias,' +
                 'Nome da variação 1,Valor da variação 1,Nome da variação 2,Valor da variação 2,' +
                 'Preço,Preço promocional,' +
