@@ -20,12 +20,16 @@ class Main {
 
     static main(args) {
 
+        def asNumber = {
+            it instanceof String ? Float.parseFloat(it.replaceAll(/,/, '.')) : it
+        }
+
         def pricesById = new File('input.csv').collect { line ->
             def values = line.split(/,/)
 
             def id = values[0]
-            def price = values[1]
-            def discountPrice = values.size() > 2 ? values[2] : ''
+            def price = asNumber(values[1])
+            def discountPrice = values.size() > 2 ? asNumber(values[2]) : ''
 
             [id, [price: price, discountPrice: discountPrice]]
         }.collectEntries()
@@ -36,16 +40,19 @@ class Main {
                     .replaceAll(/[\r\n\t ]+/, ' ')
 
             content.findAll(~'http://demillus.vestemuitomelhor.com.br/pecas/.+?/').unique()
-        }.flatten().unique().collect { url ->
+        }.flatten().unique().findAll { url ->
+            println("Getting info from ${url}")
+            Jsoup.connect(url as String).get() != null
+        }.collect { url ->
             def pageNode = Jsoup.connect(url as String).get()
-            def contentNode = pageNode.select('div.entry-content').first()
-            def descriptionNode = contentNode.select('div.descriptions').first()
+            def contentNode = pageNode.select('div.entry-content')?.first()
+            def descriptionNode = contentNode.select('div.descriptions')?.first()
 
-            def description = descriptionNode.select('p').first().text().trim()
-            def title = contentNode.select('h1.entry-title').first().text().trim()
-            def excerpt = contentNode.select('p.excerpt').first().text().trim()
-            def originalCategory = pageNode.select('ul#menu-principal').first()
-                    .select('li.current-menu-parent > a').text()
+            def description = descriptionNode?.select('p')?.first()?.text()?.trim()
+            def title = contentNode?.select('h1.entry-title')?.first()?.text()?.trim()
+            def excerpt = contentNode?.select('p.excerpt')?.first()?.text()?.trim()
+            def originalCategory = pageNode?.select('ul#menu-principal')?.first()
+                    ?.select('li.current-menu-parent > a')?.text()
 
             def id = descriptionNode.select('span').first().text().find(~'\\d{6}')
             [
@@ -57,9 +64,9 @@ class Main {
                     excerpt         : excerpt,
                     description     : description,
                     sizes           : getAvailableSizes(description),
-                    images          : contentNode.select('div.images').first()
-                            .select('a').collect { it.attr('href') },
-                    colors          : getAvailableColors(contentNode.select('div.cores')),
+                    images          : contentNode?.select('div.images')?.first()
+                            ?.select('a')?.collect { it.attr('href') },
+                    colors          : getAvailableColors(contentNode?.select('div.cores')),
                     originalCategory: originalCategory,
                     normalized      : [
                             title           : StringUtils.stripAccents(title).toLowerCase(),
@@ -90,7 +97,7 @@ class Main {
                     'Tamanho',
                     item[0],
                     'Cor',
-                    (item[1] as String).toLowerCase(),
+                    (item[1] as String)?.toLowerCase() ?: '',
                     product.price ?: '',
                     product.discountPrice ?: '',
                     // Weight, Dimensions, Stock
@@ -104,7 +111,7 @@ class Main {
                     '',
                     'NÃO', // aparecer na loja
                     'NÃO',
-                    formatDescription(product.description as String),
+                    "\"${formatDescription(product.description as String)}\"",
                     // SEO
                     "\"${(product.tags as List).join(',')}\"",
                     product.title,
@@ -166,7 +173,6 @@ class Main {
         def file = products.collect {
             productToCsv(it as Map)
         }.flatten().join('\n')
-        println(file) // TODO remove-me
         def header = 'Identificador URL,Nome,Categorias,' +
                 'Nome da variação 1,Valor da variação 1,Nome da variação 2,Valor da variação 2,' +
                 'Preço,Preço promocional,' +
@@ -174,7 +180,7 @@ class Main {
                 'Estoque,SKU,Código de barras,' +
                 'Exibir na loja,Frete gratis,' +
                 'Descrição,Tags,Título para SEO,Descrição para SEO\n'
-        new File('test.csv').write(header + file)
+        new File('output.csv').write(header + file)
     }
 
     static String formatDescription(String description) {
