@@ -137,24 +137,29 @@ class Main {
             return sizeList(matcher)
         }
 
+        matcher = (description =~ /TAMANHOS: (\d+) A (\d+)/)
+        if (matcher.size()) {
+            return sizeList(matcher)
+        }
+
         matcher = (description =~ /TAM\.:(( \w+)+)/)
         if (matcher.size()) {
             println(matcher[0])
             return matcher.group(1).trim().split(/\s+/)
         }
 
-//        matcher = (description =~ /(\w+)\s+\(VESTE \w+ E \w+\)/)
-//        if (matcher.size()) {
-//            println(matcher[0])
-//            return [matcher.group(1), matcher.group(2)]
-//        }
-//
-//        matcher = (description =~ /(\w+)\s+\(VESTE \d+ AO? \d+\)/)
-//        if (matcher.size()) {
-//            return sizeList(matcher)
-//        }
+        matcher = (description =~ /TAMANHOS:(( \w+)+)/)
+        if (matcher.size()) {
+            println(matcher[0])
+            return matcher.group(1).trim().split(/\s+/)
+        }
 
-        []
+        matcher = (description =~ /(\w+) \(VESTE (\w+) [E(AO?)] (\w+)\)/)
+        if (matcher.size()) {
+            println(matcher[0])
+            return matcher.group(1).trim().split(/\s+/)
+        }
+        ['']
     }
 
     static List<String> getAvailableColors(Elements colorsNode) {
