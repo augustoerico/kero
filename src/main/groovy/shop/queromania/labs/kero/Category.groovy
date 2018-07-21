@@ -46,7 +46,13 @@ enum Category {
 
     static boolean isPlusSize(Map product) {
         boolean isPlus = product.tags.find { (it =~ /plus/).size() }
-        boolean isSizeGtMin = product.sizes.findAll { (it =~ /\d+/) }.any { it > '46' }
+        boolean isSizeGtMin = product.sizes.any {
+            try {
+                Integer.parseInt(it as String) > 48
+            } catch (ignore) {
+                false
+            }
+        }
         isPlus || isSizeGtMin
     }
 

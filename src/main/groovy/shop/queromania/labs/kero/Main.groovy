@@ -107,7 +107,7 @@ class Main {
                     0, // comprimento
                     '',
                     // SKU
-                    product.id,
+                    "\"${product.id}\"",
                     '',
                     'NÃO', // aparecer na loja
                     'NÃO',
