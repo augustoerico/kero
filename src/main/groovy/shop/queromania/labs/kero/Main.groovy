@@ -9,15 +9,6 @@ import java.util.regex.Matcher
 
 class Main {
 
-    static final TOKEN = System.getenv('TOKEN')
-    static final REQUEST_PROPERTIES = [
-            Accept      : 'utf-8',
-            Connection  : 'keep-alive',
-            Cookie      : "__cfduid=$TOKEN".toString(),
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) ' +
-                    'Chrome/67.0.3396.99 Safari/537.36'
-    ]
-
     static main(args) {
 
         def asNumber = {
@@ -35,11 +26,12 @@ class Main {
         }.collectEntries()
 
         def products = pricesById.keySet().collect {
-            def content = "http://demillus.vestemuitomelhor.com.br/?s=$it".toURL()
-                    .getText(requestProperties: REQUEST_PROPERTIES)
-                    .replaceAll(/[\r\n\t ]+/, ' ')
-
-            content.findAll(~'http://demillus.vestemuitomelhor.com.br/pecas/.+?/').unique()
+            def url = "http://demillus.vestemuitomelhor.com.br/?s=$it"
+            println("Querying url = $url")
+            def pageNode = Jsoup.connect(url).get()
+            pageNode.select('div.list-item')?.collect {
+                it.select('a[href*=pecas]')?.collect { it.attr('href') }
+            }
         }.flatten().unique().findAll { url ->
             println("Getting info from ${url}")
             Jsoup.connect(url as String).get() != null

@@ -61,7 +61,15 @@ enum Category {
     }
 
     static boolean isInfantil(Map product) {
-        product.tags.find { (it =~ /infantil/).size() }
+        boolean isInfantilTag = product.tags.find { (it =~ /infantil/).size() }
+        boolean isSizeLtMax = product.sizes.any {
+            try {
+                Integer.parseInt(it as String) <= 12
+            } catch (ignore) {
+                false
+            }
+        }
+        isInfantilTag || isSizeLtMax
     }
 
     static List<Category> getCategories(Map product) {
