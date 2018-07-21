@@ -126,13 +126,23 @@ class Main {
         description = description.toUpperCase()
 
         def sizeList = { Matcher matcher ->
+            println(matcher.pattern())
             println(matcher[0])
             def lower = Integer.parseInt(matcher.group(1))
             def higher = Integer.parseInt(matcher.group(2))
             return (lower..higher).findAll { it % 2 == 0 }.collect { "$it".toString() }
         }
 
-        def matcher = (description =~ /TAM\.: (\d+) A (\d+)/)
+        def matcher = (description =~ /UN \(VESTE (\w+) AO? (\w+)\)/)
+        if (matcher.size()) {
+            println(matcher.pattern())
+            println(matcher[0])
+            def min = matcher.group(1)
+            def max = matcher.group(2)
+            return ["UN ($min - $max)"]
+        }
+
+        matcher = (description =~ /TAM\.: (\d+) A (\d+)/)
         if (matcher.size()) {
             return sizeList(matcher)
         }
@@ -144,21 +154,18 @@ class Main {
 
         matcher = (description =~ /TAM\.:(( \w+)+)/)
         if (matcher.size()) {
+            println(matcher.pattern())
             println(matcher[0])
             return matcher.group(1).trim().split(/\s+/)
         }
 
         matcher = (description =~ /TAMANHOS:(( \w+)+)/)
         if (matcher.size()) {
+            println(matcher.pattern())
             println(matcher[0])
             return matcher.group(1).trim().split(/\s+/)
         }
 
-        matcher = (description =~ /(\w+) \(VESTE (\w+) [E(AO?)] (\w+)\)/)
-        if (matcher.size()) {
-            println(matcher[0])
-            return matcher.group(1).trim().split(/\s+/)
-        }
         ['']
     }
 
