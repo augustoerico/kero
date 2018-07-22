@@ -87,13 +87,13 @@ class Main {
     }
 
     static List productToCsv(Map product) {
-        def id = StringUtils.stripAccents((product.title as String).toLowerCase()
+        def uniqueUrl = StringUtils.stripAccents((product.title as String).toLowerCase()
                 .replaceAll(/\s+/, '-'))
 
         GroovyCollections.combinations(product.sizes, product.colors).collect {
             def item = it as List
             [
-                    id,
+                    uniqueUrl,
                     product.title,
                     "\"${product.categories.join(',')}\"",
                     'Tamanho',

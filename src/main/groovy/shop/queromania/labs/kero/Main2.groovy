@@ -11,23 +11,10 @@ class Main2 {
         def products = [:]
         reader.each {
             def uniqueUrl = it[0]
-            if (uniqueUrl in products.keySet()) {
-                def product = products[uniqueUrl] as Map
-                if (it[4] && !(it[4] in product.sizes)) {
-                    (product.sizes as List) << it[4].toString()
-                }
-                if (it[6] && !(it[6] in product.colors)) {
-                    (product.colors as List) << it[6].toString()
-                }
-            } else {
-                def sizes = it[4] ? [it[4].toString()] : []
-                def colors = it[6] ? [it[6].toString()] : []
+            if ((!uniqueUrl in products.keySet())) {
                 def product = [
                         uniqueUrl  : uniqueUrl,
-                        title      : it[1],
                         categories : it[2],
-                        sizes      : sizes,
-                        colors     : colors,
                         description: it[20],
                         tags       : it[21].split(/,/).collect { it.trim() },
                         seo        : [
