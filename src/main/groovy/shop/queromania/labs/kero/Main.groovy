@@ -47,9 +47,18 @@ class Main {
             def originalCategory = pageNode?.select('ul#menu-principal')?.first()
                     ?.select('li.current-menu-parent > a')?.text()
 
+            def normalized = [
+                    title           : StringUtils.stripAccents(title).toLowerCase(),
+                    description     : StringUtils.stripAccents(description).toLowerCase(),
+                    excerpt         : StringUtils.stripAccents(excerpt).toLowerCase(),
+                    originalCategory: StringUtils.stripAccents(originalCategory).toLowerCase()
+            ]
+            def uniqueUrl = normalized.title.replaceAll(/\s+/, '-')
+
             def id = descriptionNode.select('span').first().text().find(~'\\d{6}')
             [
                     id              : id,
+                    uniqueUrl       : uniqueUrl,
                     price           : (pricesById.get(id) as Map)?.price,
                     discountPrice   : (pricesById.get(id) as Map)?.discountPrice,
                     url             : url,
@@ -61,39 +70,55 @@ class Main {
                             ?.select('a')?.collect { it.attr('href') },
                     colors          : getAvailableColors(contentNode?.select('div.cores')),
                     originalCategory: originalCategory,
-                    normalized      : [
-                            title           : StringUtils.stripAccents(title).toLowerCase(),
-                            description     : StringUtils.stripAccents(description).toLowerCase(),
-                            excerpt         : StringUtils.stripAccents(excerpt).toLowerCase(),
-                            originalCategory: StringUtils.stripAccents(originalCategory).toLowerCase()
-                    ]
+                    normalized      : normalized,
+                    displayOnStore  : 'SIM'
             ]
         }.collect {
             (it as Map) + [tags: getTags(it)]
         }.collect {
-            (it as Map) + [categories: Category.getCategories(it)]
+            (it as Map) + [categories: Category.getCategories(it).collect { it.toString() }]
         }
 
-        new File('products.json').write(new JsonBuilder(products).toPrettyString())
+        def productsMap = products.collect { [it.uniqueUrl, it] }.collectEntries()
+        def oldProductsMap = ProductsFromCsv.get()
 
-        products.collect { p ->
+        new File('products.json').write(new JsonBuilder(productsMap).toPrettyString(), 'UTF-8')
+        new File('products_old.json').write(new JsonBuilder(oldProductsMap).toPrettyString(), 'UTF-8')
+
+        def mergedProducts = oldProductsMap.collect { uniqueUrl, product ->
+            uniqueUrl = uniqueUrl as String
+            product = product as Map
+            if (uniqueUrl in productsMap.keySet()) {
+                def tags = (((productsMap[uniqueUrl] as Map).tags + product.tags) as List).unique()
+                def categories = (((productsMap[uniqueUrl] as Map).categories + product.categories) as List).unique()
+                def description = product.description
+                def seo = product.seo
+                productsMap[uniqueUrl] + [tags: tags, categories: categories, description: description, seo: seo]
+            } else {
+                println('=======================================================')
+                product + [displayOnStore: 'NÃO']
+            }
+        }
+        mergedProducts += (productsMap.values() as List).findAll { !((it as Map).uniqueUrl in oldProductsMap.keySet()) }
+
+        new File('products_merged.json').write(new JsonBuilder(productsMap).toPrettyString(), 'UTF-8')
+
+        /*products.collect { p ->
             p.images.eachWithIndex { imageUrl, i ->
                 def fileName = "${(p.normalized as Map).title}-$i"
                 getImage(imageUrl as String, fileName)
             }
-        }
+        }*/
 
-        exportToCsv(products)
+//        exportToCsv(products)
+        exportToCsv(mergedProducts)
     }
 
     static List productToCsv(Map product) {
-        def uniqueUrl = StringUtils.stripAccents((product.title as String).toLowerCase()
-                .replaceAll(/\s+/, '-'))
-
         GroovyCollections.combinations(product.sizes, product.colors).collect {
             def item = it as List
             [
-                    uniqueUrl,
+                    product.uniqueUrl,
                     product.title,
                     "\"${product.categories.join(',')}\"",
                     'Tamanho',
@@ -111,13 +136,13 @@ class Main {
                     // SKU
                     "\"${product.id}\"",
                     '',
-                    'NÃO', // aparecer na loja
+                    product.displayOnStore,
                     'NÃO',
                     "\"${formatDescription(product.description as String)}\"",
                     // SEO
                     "\"${(product.tags as List).join(',')}\"",
                     product.title,
-                    ''
+                    "\"${product.seo?.description}\""
             ].join(',')
         }
     }

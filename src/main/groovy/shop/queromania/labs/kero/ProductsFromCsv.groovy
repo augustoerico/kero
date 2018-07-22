@@ -17,9 +17,9 @@ class ProductsFromCsv {
     static Map get() {
         def products = [:]
         CSVParser.parse(
-                new File('produtos.csv'),
+                new File('produtos-export-nuvemshop-20180722.csv'),
                 Charset.forName('ISO-8859-1'),
-                CSVFormat.DEFAULT
+                CSVFormat.DEFAULT.withHeader()
         ).each { CSVRecord line ->
             println(line)
             def uniqueUrl = line.get(0)
@@ -27,7 +27,7 @@ class ProductsFromCsv {
                 def product = [
                         uniqueUrl  : uniqueUrl,
                         categories : line.get(2).split(/,/).collect { it.trim() },
-                        description: line.get(20),
+                        description: line.get(20)?.replaceAll(/[\r\t\n]+/, ' '),
                         tags       : line.get(21).split(/,/).collect { it.trim() },
                         seo        : [
                                 title      : line.get(22),
