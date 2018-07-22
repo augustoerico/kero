@@ -17,6 +17,6 @@ dependencies {
 
     compile 'org.spockframework:spock-core:1.1-groovy-2.4-rc-3'
 
-    // https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
+    compile group: 'com.opencsv', name: 'opencsv', version: '3.8'
     compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.0'
 }

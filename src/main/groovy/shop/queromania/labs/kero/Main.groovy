@@ -1,5 +1,6 @@
 package shop.queromania.labs.kero
 
+import groovy.json.JsonBuilder
 import org.apache.commons.lang3.StringEscapeUtils
 import org.apache.commons.lang3.StringUtils
 import org.jsoup.Jsoup
@@ -73,6 +74,15 @@ class Main {
             (it as Map) + [categories: Category.getCategories(it)]
         }
 
+        new File('products.json').write(new JsonBuilder(products).toPrettyString())
+
+        products.collect { p ->
+            p.images.eachWithIndex { imageUrl, i ->
+                def fileName = "${(p.normalized as Map).title}-$i"
+                getImage(imageUrl as String, fileName)
+            }
+        }
+
         exportToCsv(products)
     }
 
@@ -83,7 +93,7 @@ class Main {
         GroovyCollections.combinations(product.sizes, product.colors).collect {
             def item = it as List
             [
-                    id + '_2',
+                    id,
                     product.title,
                     "\"${product.categories.join(',')}\"",
                     'Tamanho',
@@ -198,6 +208,31 @@ class Main {
                 "<p><strong>$attentionNote</strong><p>" +
                 "<p>&nbsp;</p>"
         // TODO add more key-specific info: tables, images and such
+    }
+
+    static void getImage(String url, String name) {
+
+        def ACCEPT = '*/*'
+        def CONNECTION = 'keep-alive'
+        def TOKEN = 'd7b540383018111a90b686758154559b01506215457' // TODO how to get this token?
+        def USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) ' +
+                'Chrome/57.0.2987.110 Safari/537.36' // FIXME is this required?
+        def COOKIE = "__cfduid=$TOKEN".toString()
+
+        def format = 'jpg'
+        def file = new File("images/$name.$format")
+        file.withOutputStream { outputStream ->
+            println url
+            def connection = new URL(url).openConnection()
+            connection.with {
+                addRequestProperty('Accept', ACCEPT)
+                addRequestProperty('Connection', CONNECTION)
+                addRequestProperty('Cookie', COOKIE)
+                addRequestProperty('User-Agent', USER_AGENT)
+                outputStream << it.inputStream
+            }
+            outputStream.close()
+        }
     }
 
 }
