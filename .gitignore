@@ -1,3 +1,7 @@
-.gradle/
-.idea/
-out/
+.gradle/**
+.idea/**
+build/**
+images/**
+out/**
+inputs/**
+outputs/**
