@@ -9,7 +9,7 @@ class CsvProductsParser {
 
     def path = 'inputs/exported/produtos-export-nuvemshop-20180804_2.csv'
     Map<String, Integer> indexes = [
-            uniqueUrl: 0, name: 1, categories: 2, size: 4, color: 6, price: 9, discountedPrice: 10, sku: 16,
+            uniqueUrl: 0, name: 1, categories: 2, size: 4, color: 6, price: 9, discountPrice: 10, sku: 16,
             display  : 18, description: 20, tags: 21, seoTitle: 22, seoDescription: 23
     ]
 
@@ -17,7 +17,6 @@ class CsvProductsParser {
         new File('outputs/products-exported.json').write(new JsonBuilder(
                 new CsvProductsParser().parse()
         ).toPrettyString(), 'UTF-8')
-
     }
 
     Map parse() {
@@ -38,22 +37,24 @@ class CsvProductsParser {
                             line.get(indexes.size)
                     ) :
                     [
-                            uniqueUrl  : uniqueUrl.trim(),
-                            name       : line.get(indexes.name)?.trim(),
-                            categories : line.get(indexes.categories)?.split(/,/)?.collect { it.trim() } ?: [],
-                            sizes      : [line.get(indexes.size)?.trim()],
-                            colors     : [line.get(indexes.color)?.trim()],
-                            price      : asNumber(line.get(indexes.price)),
-                            sku        : line.get(indexes.sku),
-                            display    : line.get(indexes.display).trim().toUpperCase() == 'SIM',
-                            description: line.get(indexes.description).replaceAll(/[\r\t\n\s+]/, ' '),
-                            seo        : [
+                            uniqueUrl      : uniqueUrl.trim(),
+                            name           : line.get(indexes.name)?.trim(),
+                            categories     : line.get(indexes.categories)?.split(/,/)
+                                    ?.collect { it.trim() } ?: [],
+                            sizes          : [line.get(indexes.size)?.trim()],
+                            colors         : [line.get(indexes.color)?.trim()],
+                            price          : Utils.asNumber(line.get(indexes.price)),
+                            sku            : line.get(indexes.sku),
+                            display        : line.get(indexes.display).trim().toUpperCase() == 'SIM',
+                            descriptionHtml: line.get(indexes.description)
+                                    .replaceAll(/[\r\t\n\s+]/, ' '),
+                            seo            : [
                                     title      : line.get(indexes.seoTitle),
                                     description: line.get(indexes.seoDescription)
                             ]
                     ]
             if (discountedPriceStr) {
-                product << [discountedPrice: asNumber(discountedPriceStr)]
+                product << [discountPrice: Utils.asNumber(discountedPriceStr)]
             }
             products << [(uniqueUrl): product]
         }
@@ -73,11 +74,5 @@ class CsvProductsParser {
         }
 
         return product
-    }
-
-    static asNumber = {
-        it instanceof String ?
-                Float.parseFloat(it.replaceAll(/,/, '.')) :
-                it
     }
 }

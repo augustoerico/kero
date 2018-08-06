@@ -8,7 +8,7 @@ class MainTests extends Specification {
     @Unroll
     def 'should extract size list from description'(String description, List result) {
         expect:
-        Main.getAvailableSizes(description) == result
+        ProductsFetcher.getAvailableSizes(description) == result
 
         where:
         description                                  | result
