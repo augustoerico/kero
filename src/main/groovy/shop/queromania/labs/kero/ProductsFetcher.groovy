@@ -1,6 +1,9 @@
 package shop.queromania.labs.kero
 
 import groovy.json.JsonBuilder
+import org.apache.commons.csv.CSVFormat
+import org.apache.commons.csv.CSVParser
+import org.apache.commons.csv.CSVRecord
 import org.jsoup.Jsoup
 import org.jsoup.select.Elements
 
@@ -8,7 +11,7 @@ import java.util.regex.Matcher
 
 class ProductsFetcher {
 
-    def path = "inputs/prices/prices-1.csv"
+    def path = "inputs/prices/prices-2.csv"
 
     static main(args) {
         new File('outputs/products-fetched.json').write(new JsonBuilder(
@@ -18,12 +21,13 @@ class ProductsFetcher {
 
     Map pricesBySku() {
 
-        new File(this.path).collect { line ->
-            def values = line.split(/,/)
-
-            def sku = values[0]
-            def price = Utils.asNumber(values[1])
-            def discountPrice = values.size() > 2 ? Utils.asNumber(values[2]) : ''
+        CSVParser.parse(
+                new FileReader(this.path),
+                CSVFormat.DEFAULT.withFirstRecordAsHeader()
+        ).collect { CSVRecord line ->
+            def sku = line.get(0).padLeft(6, '0')
+            def price = Utils.asNumber(line.get(1))
+            def discountPrice = line.get(2) ? Utils.asNumber(line.get(2)) : null
 
             [sku, [price: price, discountPrice: discountPrice]]
         }.collectEntries()
@@ -57,8 +61,7 @@ class ProductsFetcher {
                             ?.select('a')?.collect { it.attr('href') },
                     colors          : getAvailableColors(contentNode?.select('div.cores')),
                     originalCategory: pageNode?.select('ul#menu-principal')?.first()
-                            ?.select('li.current-menu-parent > a')?.text(),
-                    display         : true
+                            ?.select('li.current-menu-parent > a')?.text()
             ]
         }.collect {
             (it as Map) + [normalized: [
@@ -77,6 +80,8 @@ class ProductsFetcher {
             ]
         }.collect {
             (it as Map) + [categories: Category.getCategories(it).collect { it.toString() }]
+        }.collect{
+            (it as Map) + [display: it.price != null]
         }.collect {
             [it.uniqueUrl, it]
         }.collectEntries()

@@ -28,7 +28,7 @@ class CsvProductsParser {
                         .withFirstRecordAsHeader()
         ).each { CSVRecord line ->
             def uniqueUrl = line.get(indexes.uniqueUrl)
-            def discountedPriceStr = line.get(indexes.discountedPrice).trim()
+            def discountPriceStr = line.get(indexes.discountPrice).trim()
 
             def product = (uniqueUrl in products.keySet()) ?
                     addVariations(
@@ -53,8 +53,8 @@ class CsvProductsParser {
                                     description: line.get(indexes.seoDescription)
                             ]
                     ]
-            if (discountedPriceStr) {
-                product << [discountPrice: Utils.asNumber(discountedPriceStr)]
+            if (discountPriceStr) {
+                product << [discountPrice: Utils.asNumber(discountPriceStr)]
             }
             products << [(uniqueUrl): product]
         }
