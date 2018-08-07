@@ -54,7 +54,7 @@ class ProductsFetcher {
             [
                     sku             : descriptionNode.select('span').first().text().find(~'\\d{6}'),
                     url             : url,
-                    title           : contentNode?.select('h1.entry-title')?.first()?.text()?.trim(),
+                    name            : contentNode?.select('h1.entry-title')?.first()?.text()?.trim(),
                     excerpt         : contentNode?.select('p.excerpt')?.first()?.text()?.trim(),
                     description     : descriptionNode?.select('p')?.first()?.text()?.trim(),
                     images          : contentNode?.select('div.images')?.first()
@@ -65,7 +65,7 @@ class ProductsFetcher {
             ]
         }.collect {
             (it as Map) + [normalized: [
-                    title           : Utils.normalize(it.title),
+                    name            : Utils.normalize(it.name),
                     description     : Utils.normalize(it.description),
                     excerpt         : Utils.normalize(it.excerpt),
                     originalCategory: Utils.normalize(it.originalCategory)
@@ -74,13 +74,13 @@ class ProductsFetcher {
             (it as Map) + [
                     price        : (pricesBySku.get(it.sku) as Map)?.price,
                     discountPrice: (pricesBySku.get(it.sku) as Map)?.discountPrice,
-                    uniqueUrl    : (it.normalized as Map).title.replaceAll(/[^a-z^0-9]/, '-'),
+                    uniqueUrl    : (it.normalized as Map).name.replaceAll(/[^a-z^0-9]/, '-'),
                     sizes        : getAvailableSizes(it.description as String),
                     tags         : getTags(it)
             ]
         }.collect {
             (it as Map) + [categories: Category.getCategories(it).collect { it.toString() }]
-        }.collect{
+        }.collect {
             (it as Map) + [display: it.price != null]
         }.collect {
             [it.uniqueUrl, it]
@@ -143,7 +143,7 @@ class ProductsFetcher {
 
     static List getTags(Map product) {
         [
-                (product.normalized.title as String).split(/\s+/),
+                (product.normalized.name as String).split(/\s+/),
                 (product.normalized.originalCategory as String).split(/\s+/)
         ].flatten().findAll { it && (it =~ /\w+/).size() }.unique()
     }

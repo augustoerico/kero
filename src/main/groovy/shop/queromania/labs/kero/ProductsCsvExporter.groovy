@@ -1,15 +1,38 @@
 package shop.queromania.labs.kero
 
+import groovy.json.JsonSlurper
 import org.apache.commons.lang3.StringEscapeUtils
 
 class ProductsCsvExporter {
+
+    def path = 'outputs/products-merged.json'
+
+    static main(args) {
+        new ProductsCsvExporter().export()
+    }
+
+    void export() {
+        def products = []
+        new JsonSlurper().parse(new File(this.path)).each { k, v ->
+            products << productToCsv(v as Map)
+        }
+        products.flatten().join('\n')
+        def header = 'Identificador URL,Nome,Categorias,' +
+                'Nome da variação 1,Valor da variação 1,Nome da variação 2,Valor da variação 2,' +
+                'Preço,Preço promocional,' +
+                'Peso,Altura,Largura,Comprimento,' +
+                'Estoque,SKU,Código de barras,' +
+                'Exibir na loja,Frete gratis,' +
+                'Descrição,Tags,Título para SEO,Descrição para SEO\n'
+        new File('outputs/products-import.csv').write(header + products)
+    }
 
     static List productToCsv(Map product) {
         GroovyCollections.combinations(product.sizes, product.colors).collect {
             def item = it as List
             [
                     product.uniqueUrl,
-                    product.title,
+                    product.name,
                     "\"${product.categories.join(',')}\"",
                     'Tamanho',
                     item[0],
@@ -24,31 +47,17 @@ class ProductsCsvExporter {
                     0, // comprimento
                     '',
                     // SKU
-                    "\"${product.id}\"",
+                    "\"${product.sku}\"",
                     '',
-                    product.displayOnStore,
+                    product.display ? 'SIM' : 'NÃO',
                     'NÃO',
-                    "\"${formatDescription(product.description as String)}\"",
+                    "\"${product.descriptionHtml ?: formatDescription(product.description as String)}\"",
                     // SEO
-                    "\"${(product.tags as List).join(',')}\"",
-                    product.title,
-                    "\"${product.seo?.description}\""
+                    "\"${(product.tags ?: []).join(',')}\"",
+                    product.name,
+                    "\"${product.seo?.description ?: ''}\""
             ].join(',')
         }
-    }
-
-    static void exportToCsv(List products) {
-        def file = products.collect {
-            productToCsv(it as Map)
-        }.flatten().join('\n')
-        def header = 'Identificador URL,Nome,Categorias,' +
-                'Nome da variação 1,Valor da variação 1,Nome da variação 2,Valor da variação 2,' +
-                'Preço,Preço promocional,' +
-                'Peso,Altura,Largura,Comprimento,' +
-                'Estoque,SKU,Código de barras,' +
-                'Exibir na loja,Frete gratis,' +
-                'Descrição,Tags,Título para SEO,Descrição para SEO\n'
-        new File('output.csv').write(header + file)
     }
 
     static String formatDescription(String description) {

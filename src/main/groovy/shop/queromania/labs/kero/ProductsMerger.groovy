@@ -27,7 +27,9 @@ class ProductsMerger {
                 def update = [
                         price        : fetched.get(key).price,
                         discountPrice: fetched.get(key).discountPrice,
-                        display      : fetched.get(key).display
+                        display      : fetched.get(key).display,
+                        sku          : fetched.get(key).sku,
+                        excerpt      : fetched.get(key).excerpt
                 ] as Map
                 merged[key] = fetched.get(key) + exported.get(key) + update
             } else if (key in exported.keySet()) {
