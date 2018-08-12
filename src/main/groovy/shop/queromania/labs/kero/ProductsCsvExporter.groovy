@@ -14,9 +14,9 @@ class ProductsCsvExporter {
     void export() {
         def products = []
         new JsonSlurper().parse(new File(this.path)).each { k, v ->
-            products << productToCsv(v as Map)
+            def lines = productToCsv(v as Map)
+            products << lines
         }
-        products.flatten().join('\n')
         def header = 'Identificador URL,Nome,Categorias,' +
                 'Nome da variação 1,Valor da variação 1,Nome da variação 2,Valor da variação 2,' +
                 'Preço,Preço promocional,' +
@@ -24,9 +24,10 @@ class ProductsCsvExporter {
                 'Estoque,SKU,Código de barras,' +
                 'Exibir na loja,Frete gratis,' +
                 'Descrição,Tags,Título para SEO,Descrição para SEO\n'
-        new File('outputs/products-import.csv').write(header + products)
+        new File('outputs/products-import.csv').write(header + products.flatten().join('\n'))
     }
 
+    // FIXME use a proper CSV Builder
     static List productToCsv(Map product) {
         GroovyCollections.combinations(product.sizes, product.colors).collect {
             def item = it as List
@@ -51,7 +52,7 @@ class ProductsCsvExporter {
                     '',
                     product.display ? 'SIM' : 'NÃO',
                     'NÃO',
-                    "\"${product.descriptionHtml ?: formatDescription(product.description as String)}\"",
+                    "\"${(product.descriptionHtml ?: formatDescription(product.description as String)).replaceAll(/"/, '""')}\"",
                     // SEO
                     "\"${(product.tags ?: []).join(',')}\"",
                     product.name,
