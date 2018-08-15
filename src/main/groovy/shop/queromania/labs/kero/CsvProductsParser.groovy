@@ -7,7 +7,7 @@ import org.apache.commons.csv.CSVRecord
 
 class CsvProductsParser {
 
-    def path = 'inputs/exported/produtos-export-nuvemshop-20180804_2.csv'
+    def path = 'inputs/exported/produtos-export-nuvemshop-20180815.csv'
     Map<String, Integer> indexes = [
             uniqueUrl: 0, name: 1, categories: 2, size: 4, color: 6, price: 9, discountPrice: 10, sku: 16,
             display  : 18, description: 20, tags: 21, seoTitle: 22, seoDescription: 23
@@ -44,10 +44,10 @@ class CsvProductsParser {
                             sizes          : [line.get(indexes.size)?.trim()],
                             colors         : [line.get(indexes.color)?.trim()],
                             price          : Utils.asNumber(line.get(indexes.price)),
-                            sku            : line.get(indexes.sku),
-                            display        : line.get(indexes.display).trim().toUpperCase() == 'SIM',
+                            sku            : line.get(indexes.sku)?.padLeft(6, '0'),
+                            display        : line.get(indexes.display)?.trim()?.toUpperCase() == 'SIM',
                             descriptionHtml: line.get(indexes.description)
-                                    .replaceAll(/[\r\t\n\s+]/, ' '),
+                                    ?.replaceAll(/[\r\t\n\s+]/, ' '),
                             seo            : [
                                     title      : line.get(indexes.seoTitle),
                                     description: line.get(indexes.seoDescription)
