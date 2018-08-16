@@ -40,9 +40,13 @@ class ProductsFetcher {
             def url = "http://demillus.vestemuitomelhor.com.br/?s=$it"
             println("Querying url = $url")
             def pageNode = Jsoup.connect(url).get()
-            pageNode.select('div.list-item')?.collect {
+            def links = pageNode.select('div.list-item')?.collect {
                 it.select('a[href*=pecas]')?.collect { it.attr('href') }
             }
+            if (!links) {
+                println(it)
+            }
+            links
         }.flatten().unique().findAll { url ->
             println("Getting info from ${url}")
             Jsoup.connect(url as String).get() != null
@@ -52,7 +56,7 @@ class ProductsFetcher {
             def descriptionNode = contentNode.select('div.descriptions')?.first()
 
             [
-                    sku             : descriptionNode.select('span').first().text().find(~'\\d{6}'),
+                    sku             : descriptionNode.select('span').first().text().find(~'\\w\\d{5}'),
                     url             : url,
                     name            : contentNode?.select('h1.entry-title')?.first()?.text()?.trim(),
                     excerpt         : contentNode?.select('p.excerpt')?.first()?.text()?.trim(),
