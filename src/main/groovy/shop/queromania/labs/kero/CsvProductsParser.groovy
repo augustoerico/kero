@@ -7,23 +7,23 @@ import org.apache.commons.csv.CSVRecord
 
 class CsvProductsParser {
 
-    def path = 'inputs/exported/produtos-export-nuvemshop-20180815.csv'
-    Map<String, Integer> indexes = [
+    final Map<String, Integer> indexes = [
             uniqueUrl: 0, name: 1, categories: 2, size: 4, color: 6, price: 9, discountPrice: 10, sku: 16,
             display  : 18, description: 20, tags: 21, seoTitle: 22, seoDescription: 23
     ]
 
     static main(args) {
+        /** TODO refactor to accept -i and -o */
         new File('outputs/products-exported.json').write(new JsonBuilder(
-                new CsvProductsParser().parse()
+                new CsvProductsParser().parse('inputs/exported/produtos-export-nuvemshop-20180826.csv')
         ).toPrettyString(), 'UTF-8')
     }
 
-    Map parse() {
+    Map parse(String input) {
         def products = [:] as Map
 
         CSVParser.parse(
-                new FileReader(this.path),
+                new FileReader(input),
                 CSVFormat.DEFAULT
                         .withFirstRecordAsHeader()
         ).each { CSVRecord line ->
@@ -47,7 +47,7 @@ class CsvProductsParser {
                             sku            : line.get(indexes.sku)?.padLeft(6, '0'),
                             display        : line.get(indexes.display)?.trim()?.toUpperCase() == 'SIM',
                             descriptionHtml: line.get(indexes.description)
-                                    ?.replaceAll(/[\r\t\n\s+]/, ' '),
+                                    ?.replaceAll(/[\r\t\n\s]+/, ' '),
                             seo            : [
                                     title      : line.get(indexes.seoTitle),
                                     description: line.get(indexes.seoDescription)
