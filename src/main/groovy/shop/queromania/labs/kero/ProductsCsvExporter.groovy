@@ -8,7 +8,7 @@ class ProductsCsvExporter {
 //    def path = 'outputs/products-merged.json'
 
     static main(args) {
-        export('outputs/products-exported.json')
+        export('outputs/products_fetched-20180827.json')
     }
 
     static export(String input) {
@@ -32,13 +32,15 @@ class ProductsCsvExporter {
         GroovyCollections.combinations(product.variants.sizes, product.variants.colors).collect {
             def item = it as List
             def description = (
-                    product.description.custom ?: formatDescription(product.description as String)
+                    product.description.custom ?: formatDescription(product.description.provider as String)
             ).replaceAll(/"/, '""')
 
+            def categories = (product.taxonomy?.custom ?:
+                    product.taxonomy?.provider) ?: []
             [
                     product.uniqueUrl,
                     product.name,
-                    "\"${product.taxonomy.custom?.join(',')}\"",
+                    "\"${categories.join(',')}\"",
                     'Tamanho',
                     item[0],
                     'Cor',
@@ -58,8 +60,8 @@ class ProductsCsvExporter {
                     'NÃO',
                     "\"${description}\"",
                     // SEO
-                    "\"${(product.tags ?: []).join(',')}\"", // TODO generate tags from normalized
-                    product.seo.title,
+                    "\"${(product.tags ?: []).join(',')}\"",
+                    product.seo?.title ?: product.name,
                     "\"${product.seo?.description ?: ''}\""
             ].join(',')
         }

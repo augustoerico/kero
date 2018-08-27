@@ -11,7 +11,7 @@ import java.util.regex.Matcher
 
 class ProductsFetcher {
 
-    def path = "inputs/prices/prices-2.csv"
+    def path = "inputs/prices/untitled.csv"
 
     static main(args) {
         new File('outputs/products-fetched.json').write(new JsonBuilder(
@@ -102,7 +102,7 @@ class ProductsFetcher {
                     [custom: Category.getCategories(it).collect { it.toString() }]
             (it as Map) + [taxonomy: taxonomy]
         }.collect {
-            (it as Map) + [display: it.price.base != null]
+            (it as Map) + [display: [global:  it.price.base != null]]
         }.collect {
             [it.id, it]
         }.collectEntries()
