@@ -34,6 +34,7 @@ class CsvProductsParser {
             def sku = line.get(indexes.sku)?.padLeft(6, '0')
             def id = "$uniqueUrl-$sku".toString()
 
+            def tags = line.get(indexes.tags)?.split(/,/)?.collect(Utils.normalize) ?: []
             def discountPriceStr = line.get(indexes.discountPrice).trim()
 
             def product = (id in products.keySet()) ?
@@ -56,6 +57,7 @@ class CsvProductsParser {
                             display        : line.get(indexes.display)?.trim()?.toUpperCase() == 'SIM',
                             descriptionHtml: line.get(indexes.description)
                                     ?.replaceAll(/[\r\t\n\s]+/, ' '),
+                            tags           : tags,
                             seo            : [
                                     title      : line.get(indexes.seoTitle),
                                     description: line.get(indexes.seoDescription)

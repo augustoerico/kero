@@ -5,15 +5,15 @@ import org.apache.commons.lang3.StringEscapeUtils
 
 class ProductsCsvExporter {
 
-    def path = 'outputs/products-merged.json'
+//    def path = 'outputs/products-merged.json'
 
     static main(args) {
-        new ProductsCsvExporter().export()
+        export('outputs/products-exported.json')
     }
 
-    void export() {
+    static export(String input) {
         def products = []
-        new JsonSlurper().parse(new File(this.path)).each { k, v ->
+        new JsonSlurper().parse(new File(input)).each { k, v ->
             def lines = productToCsv(v as Map)
             products << lines
         }
@@ -29,18 +29,22 @@ class ProductsCsvExporter {
 
     // FIXME use a proper CSV Builder
     static List productToCsv(Map product) {
-        GroovyCollections.combinations(product.sizes, product.colors).collect {
+        GroovyCollections.combinations(product.variants.sizes, product.variants.colors).collect {
             def item = it as List
+            def description = (
+                    product.description.custom ?: formatDescription(product.description as String)
+            ).replaceAll(/"/, '""')
+
             [
                     product.uniqueUrl,
                     product.name,
-                    "\"${product.categories.join(',')}\"",
+                    "\"${product.taxonomy.custom?.join(',')}\"",
                     'Tamanho',
                     item[0],
                     'Cor',
                     (item[1] as String)?.toLowerCase() ?: '',
-                    product.price ?: '',
-                    product.discountPrice ?: '',
+                    product.price.base ?: '',
+                    product.price.promotional.global ?: '',
                     // Weight, Dimensions, Stock
                     0, // peso TODO
                     0, // altura TODO
@@ -50,12 +54,12 @@ class ProductsCsvExporter {
                     // SKU
                     "\"${product.sku}\"",
                     '',
-                    product.display ? 'SIM' : 'NÃO',
+                    product.display.global ? 'SIM' : 'NÃO',
                     'NÃO',
-                    "\"${(product.descriptionHtml ?: formatDescription(product.description as String)).replaceAll(/"/, '""')}\"",
+                    "\"${description}\"",
                     // SEO
-                    "\"${(product.tags ?: []).join(',')}\"",
-                    product.name,
+                    "\"${(product.tags ?: []).join(',')}\"", // TODO generate tags from normalized
+                    product.seo.title,
                     "\"${product.seo?.description ?: ''}\""
             ].join(',')
         }
