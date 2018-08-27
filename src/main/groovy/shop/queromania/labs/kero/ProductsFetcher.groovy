@@ -55,39 +55,56 @@ class ProductsFetcher {
             def contentNode = pageNode.select('div.entry-content')?.first()
             def descriptionNode = contentNode.select('div.descriptions')?.first()
 
+            def providerDescription = descriptionNode?.select('p')?.first()?.text()?.trim()
+
             [
-                    sku             : descriptionNode.select('span').first().text().find(~'\\w\\d{5}'),
-                    url             : url,
-                    name            : contentNode?.select('h1.entry-title')?.first()?.text()?.trim(),
-                    excerpt         : contentNode?.select('p.excerpt')?.first()?.text()?.trim(),
-                    description     : descriptionNode?.select('p')?.first()?.text()?.trim(),
-                    images          : contentNode?.select('div.images')?.first()
+                    sku        : descriptionNode.select('span').first().text().find(~'\\w\\d{5}'),
+                    url        : url,
+                    name       : contentNode?.select('h1.entry-title')?.first()?.text()?.trim(),
+                    description: [
+                            excerpt : contentNode?.select('p.excerpt')?.first()?.text()?.trim(),
+                            provider: providerDescription
+                    ],
+                    imageLinks : contentNode?.select('div.images')?.first()
                             ?.select('a')?.collect { it.attr('href') },
-                    colors          : getAvailableColors(contentNode?.select('div.cores')),
-                    originalCategory: pageNode?.select('ul#menu-principal')?.first()
-                            ?.select('li.current-menu-parent > a')?.text()
+                    variants   : [
+                            colors: getAvailableColors(contentNode?.select('div.cores')),
+                            sizes : getAvailableSizes(providerDescription)
+                    ],
+                    taxonomy   : [
+                            provider: pageNode?.select('ul#menu-principal')?.first()
+                                    ?.select('li.current-menu-parent > a')?.text()
+                    ]
             ]
         }.collect {
+            def description = it.description as Map
+            def taxonomy = it.taxonomy as Map
             (it as Map) + [normalized: [
-                    name            : Utils.normalize(it.name),
-                    description     : Utils.normalize(it.description),
-                    excerpt         : Utils.normalize(it.excerpt),
-                    originalCategory: Utils.normalize(it.originalCategory)
+                    name       : Utils.normalize(it.name),
+                    description: Utils.normalize(description.provider),
+                    excerpt    : Utils.normalize(description.excerpt),
+                    category   : Utils.normalize(taxonomy.provider)
             ]]
         }.collect {
+            def uniqueUrl = (it.normalized as Map).name.replaceAll(/[^a-z^0-9]/, '-')
+            def id = "$uniqueUrl-${it.sku}".toString()
             (it as Map) + [
-                    price        : (pricesBySku.get(it.sku) as Map)?.price,
-                    discountPrice: (pricesBySku.get(it.sku) as Map)?.discountPrice,
-                    uniqueUrl    : (it.normalized as Map).name.replaceAll(/[^a-z^0-9]/, '-'),
-                    sizes        : getAvailableSizes(it.description as String),
-                    tags         : getTags(it)
+                    id       : id,
+                    uniqueUrl: uniqueUrl,
+                    price    : [
+                            base       : (pricesBySku.get(it.sku) as Map)?.price,
+                            promotional: [global: (pricesBySku.get(it.sku) as Map)?.discountPrice]
+                    ],
+                    tags     : getTags(it)
             ]
         }.collect {
-            (it as Map) + [categories: Category.getCategories(it).collect { it.toString() }]
+            def taxonomy = (it.taxonomy as Map) +
+                    [custom: Category.getCategories(it).collect { it.toString() }]
+            (it as Map) + [taxonomy: taxonomy]
         }.collect {
-            (it as Map) + [display: it.price != null]
+            (it as Map) + [display: it.price.base != null]
         }.collect {
-            [it.uniqueUrl, it]
+            [it.id, it]
         }.collectEntries()
     }
 
@@ -148,7 +165,7 @@ class ProductsFetcher {
     static List getTags(Map product) {
         [
                 (product.normalized.name as String).split(/\s+/),
-                (product.normalized.originalCategory as String).split(/\s+/)
+                (product.normalized.category as String).split(/\s+/)
         ].flatten().findAll { it && (it =~ /\w+/).size() }.unique()
     }
 }
