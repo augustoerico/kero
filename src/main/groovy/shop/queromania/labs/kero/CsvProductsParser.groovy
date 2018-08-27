@@ -15,7 +15,10 @@ class CsvProductsParser {
     static main(args) {
         /** TODO refactor to accept -i and -o */
         new File('outputs/products-exported.json').write(new JsonBuilder(
-                new CsvProductsParser().parse('inputs/exported/produtos-export-nuvemshop-20180826.csv')
+                new CsvProductsParser()
+                        .parse('inputs/exported/produtos-export-nuvemshop-20180826.csv')
+                        .values()
+                        .collectEntries(toProduct)
         ).toPrettyString(), 'UTF-8')
     }
 
@@ -28,15 +31,19 @@ class CsvProductsParser {
                         .withFirstRecordAsHeader()
         ).each { CSVRecord line ->
             def uniqueUrl = line.get(indexes.uniqueUrl)
+            def sku = line.get(indexes.sku)?.padLeft(6, '0')
+            def id = "$uniqueUrl-$sku".toString()
+
             def discountPriceStr = line.get(indexes.discountPrice).trim()
 
-            def product = (uniqueUrl in products.keySet()) ?
+            def product = (id in products.keySet()) ?
                     addVariations(
-                            products[uniqueUrl] as Map,
+                            products[id] as Map,
                             line.get(indexes.color),
                             line.get(indexes.size)
                     ) :
                     [
+                            id             : id,
                             uniqueUrl      : uniqueUrl.trim(),
                             name           : line.get(indexes.name)?.trim(),
                             categories     : line.get(indexes.categories)?.split(/,/)
@@ -44,7 +51,8 @@ class CsvProductsParser {
                             sizes          : [line.get(indexes.size)?.trim()],
                             colors         : [line.get(indexes.color)?.trim()],
                             price          : Utils.asNumber(line.get(indexes.price)),
-                            sku            : line.get(indexes.sku)?.padLeft(6, '0'),
+                            discountPrice  : discountPriceStr ? Utils.asNumber(discountPriceStr) : null,
+                            sku            : sku,
                             display        : line.get(indexes.display)?.trim()?.toUpperCase() == 'SIM',
                             descriptionHtml: line.get(indexes.description)
                                     ?.replaceAll(/[\r\t\n\s]+/, ' '),
@@ -53,13 +61,31 @@ class CsvProductsParser {
                                     description: line.get(indexes.seoDescription)
                             ]
                     ]
-            if (discountPriceStr) {
-                product << [discountPrice: Utils.asNumber(discountPriceStr)]
-            }
-            products << [(uniqueUrl): product]
+            products << [(id): product]
         }
 
         return products
+    }
+
+    static toProduct = {
+        [it.id, [
+                id         : it.id,
+                uniqueUrl  : it.uniqueUrl,
+                sku        : it.sku,
+                name       : it.name,
+                variants   : [sizes: it.sizes, colors: it.colors],
+                taxonomy   : [custom: it.categories],
+                description: [custom: it.descriptionHtml],
+                price      : [
+                        base       : it.price,
+                        promotional: [global: it.discountPrice]
+                ],
+                display    : [global: it.display],
+                seo        : [
+                        title      : it.seo.title,
+                        description: it.seo.description
+                ]
+        ]]
     }
 
     static private Map addVariations(Map product, String color, String size) {
