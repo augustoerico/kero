@@ -18,6 +18,5 @@ dependencies {
     compile 'org.spockframework:spock-core:1.1-groovy-2.4-rc-3'
 
     compile group: 'org.apache.commons', name: 'commons-csv', version: '1.5'
-
     compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.0'
 }
