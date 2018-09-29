@@ -1,9 +1,10 @@
-package shop.queromania.labs.kero
+package shop.queromania.labs.kero.parsers
 
 import groovy.json.JsonBuilder
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.CSVParser
 import org.apache.commons.csv.CSVRecord
+import shop.queromania.labs.kero.Utils
 
 class CsvProductsParser {
 

@@ -5,3 +5,4 @@ images/**
 out/**
 inputs/**
 outputs/**
+secrets/**
