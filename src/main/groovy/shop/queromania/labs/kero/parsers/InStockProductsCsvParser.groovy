@@ -12,8 +12,6 @@ class InStockProductsCsvParser {
 
     static Map parseFromFile(String inputFilePath) {
 
-        Map products = [:]
-
         def lines = CSVParser.parse(
                 new FileReader(inputFilePath),
                 CSVFormat.DEFAULT.withFirstRecordAsHeader()
