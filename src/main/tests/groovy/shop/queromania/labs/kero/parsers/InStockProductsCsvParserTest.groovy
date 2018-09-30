@@ -14,19 +14,25 @@ class InStockProductsCsvParserTest extends Specification {
         where:
         properties << [
                 [
-                        [sku: '000123', price: 10.0, color: 'black', size: 's'],
-                        [sku: '000456', price: 12.34, color: 'red', size: 'l']
+                        [sku: '000123', price: 10.0, color: 'black', size: 'S'],
+                        [sku: '000456', price: 12.34, color: 'red', size: 'L']
                 ],
                 [
-                        [sku: '000123', price: 10.0, color: 'black', size: 's'],
-                        [sku: '000456', price: 12.34, color: 'red', size: 'l'],
-                        [sku: '000123', price: 10.0, color: 'white', size: 'm']
+                        [sku: '000123', price: 10.0, color: 'black', size: 'S'],
+                        [sku: '000456', price: 12.34, color: 'red', size: 'L'],
+                        [sku: '000123', price: 10.0, color: 'white', size: 'M']
                 ],
                 [
-                        [sku: '000123', price: 10.0, color: 'black', size: 's'],
-                        [sku: '000456', price: 12.34, color: 'red', size: 'm'],
-                        [sku: '000456', price: 12.34, color: 'green', size: 'm'],
-                        [sku: '000123', price: 10.0, color: 'black', size: 'm']
+                        [sku: '000123', price: 10.0, color: 'black', size: 'S'],
+                        [sku: '000456', price: 12.34, color: 'red', size: 'M'],
+                        [sku: '000456', price: 12.34, color: 'green', size: 'M'],
+                        [sku: '000123', price: 10.0, color: 'black', size: 'M']
+                ],
+                [
+                        [sku: '000123', price: 10.0, color: 'black', size: 'S'],
+                        [sku: '000123', price: 10.0, color: 'white', size: 'S'],
+                        [sku: '000123', price: 10.0, color: 'black', size: 'M'],
+                        [sku: '000123', price: 10.0, color: 'white', size: 'M']
                 ]
         ]
         result << [
@@ -76,6 +82,15 @@ class InStockProductsCsvParserTest extends Specification {
                                 price   : [base: 12.34],
                                 variants: [
                                         [colors: ['red', 'green'], sizes: ['M']]
+                                ]
+                        ]
+                ],
+                [
+                        '000123': [
+                                sku     : '000123',
+                                price   : [base: 10.0],
+                                variants: [
+                                        [colors: ['black', 'white'], sizes: ['S', 'M']]
                                 ]
                         ]
                 ]

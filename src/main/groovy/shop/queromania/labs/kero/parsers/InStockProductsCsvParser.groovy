@@ -19,9 +19,9 @@ class InStockProductsCsvParser {
                 CSVFormat.DEFAULT.withFirstRecordAsHeader()
         ).collect { CSVRecord line ->
             [
-                    sku  : line.get(indexes.sku).padLeft(6, '0'),
-                    color: line.get(indexes.color),
-                    size : line.get(indexes.size),
+                    sku  : line.get(indexes.sku).padLeft(6, '0').toUpperCase(),
+                    color: line.get(indexes.color).toLowerCase(),
+                    size : line.get(indexes.size).toUpperCase(),
                     price: Float.parseFloat(line.get(indexes.price))
             ]
         }
@@ -36,9 +36,9 @@ class InStockProductsCsvParser {
     }
 
     static parse = { products, properties ->
-        def sku = (properties.sku as String).toUpperCase()
-        def color = (properties.color as String).toLowerCase()
-        def size = (properties.size as String).toUpperCase()
+        def sku = properties.sku as String
+        def color = properties.color
+        def size = properties.size
         def price = properties.price
 
         if (sku in products.keySet()) {
@@ -52,10 +52,14 @@ class InStockProductsCsvParser {
             for (v in product.variants) {
                 if (color in v.colors) {
                     found = true
-                    v.sizes << size
+                    if (!(size in v.sizes)) {
+                        v.sizes << size
+                    }
                 } else if (size in v.sizes) {
                     found = true
-                    v.colors << color
+                    if (!(color in v.colors)) {
+                        v.colors << color
+                    }
                 }
             }
 
