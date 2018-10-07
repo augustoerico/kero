@@ -9,7 +9,8 @@ enum Category {
     MASCULINO('Masculino'),
     PLUS_SIZE('Plus Size'),
     OFERTAS('Ofertas'),
-    INFANTIL('Infantil')
+    INFANTIL('Infantil'),
+    PRONTA_ENTREGA('Pronta Entrega')
 
     String name
 
