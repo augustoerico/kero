@@ -4,6 +4,14 @@ import org.jsoup.Jsoup
 
 class Crawler {
 
+    static Map<String, Map> crawl(List<String> skus, String baseUrl = "http://demillus.vestemuitomelhor.com.br/") {
+        skus.collectEntries { sku ->
+            def links = getLinksFromSearch("${baseUrl}?s=${sku}")
+            def products = links.collect { getProduct(it) }
+            [(sku): products.find { (it.sku as String).trim().padLeft(6, '0') == sku }]
+        }
+    }
+
     static List<String> getLinksFromSearch(String searchUrl) {
         def pageNode = Jsoup.connect(searchUrl).get()
         pageNode.select('div.list-item')?.collectMany {
@@ -41,5 +49,8 @@ class Crawler {
 
         def productUrl = 'http://demillus.vestemuitomelhor.com.br/pecas/colecao-idylle-2/#main'
         println(getProduct(productUrl))
+
+        def skus = ['063577', '053577']
+        println(crawl(skus))
     }
 }
