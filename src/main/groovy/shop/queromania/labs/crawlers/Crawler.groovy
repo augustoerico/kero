@@ -30,7 +30,7 @@ class Crawler {
                 sku        : descriptionNode.select('span').first().text().find(~'\\w\\d{5}'),
                 name       : contentNode?.select('h1.entry-title')?.first()?.text(),
                 description: descriptionNode?.select('p')?.first()?.text(),
-                exerpt     : contentNode?.select('p.excerpt')?.first()?.text(),
+                excerpt    : contentNode?.select('p.excerpt')?.first()?.text(),
                 imageLinks : contentNode?.select('div.images')?.first()
                         ?.select('a')?.collect { it.attr('href') },
                 variants   : [
